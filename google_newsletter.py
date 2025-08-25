@@ -14,6 +14,35 @@ def search_tool(query: str) -> str:
     """Useful for when you need to ask the agent to search the internet"""
     return search.run(query)
 
+@tool("Load document")
+def load_tool(document_type: str = "any") -> str:
+    """Load a document using Streamlit file uploader and return its content as string"""
+    st.write(f"Please upload a {document_type} document:")
+    
+    uploaded_file = st.file_uploader(
+        f"Choose a {document_type} file",
+        type=['txt', 'md', 'csv', 'json', 'py', 'js', 'html', 'xml']
+    )
+    
+    if uploaded_file is not None:
+        try:
+            # Read the file content as string
+            content = uploaded_file.read().decode('utf-8')
+            st.success(f"Successfully loaded {uploaded_file.name}")
+            return f"File: {uploaded_file.name}\n\nContent:\n{content}"
+        except UnicodeDecodeError:
+            try:
+                # Try different encoding if utf-8 fails
+                content = uploaded_file.read().decode('latin-1')
+                st.success(f"Successfully loaded {uploaded_file.name}")
+                return f"File: {uploaded_file.name}\n\nContent:\n{content}"
+            except Exception as e:
+                st.error(f"Error reading file: {str(e)}")
+                return f"Error: Could not read file {uploaded_file.name}: {str(e)}"
+    else:
+        st.info("Please upload a file to continue")
+        return "No file uploaded. Please upload a document to proceed."
+
 
 
 
