@@ -1,5 +1,6 @@
 import os
 
+from langchain_community.agent_toolkits.load_tools import load_tools
 from crewai import Agent, Task, Process, Crew
 from crewai.tools import tool
 from langchain_community.utilities import GoogleSerperAPIWrapper
@@ -14,7 +15,8 @@ def search_tool(query: str) -> str:
     """Useful for when you need to ask the agent to search the internet"""
     return search.run(query)
 
-
+# Loading Human Tools
+human_tools = load_tools(["human"])
 
 
 """
@@ -25,11 +27,10 @@ def search_tool(query: str) -> str:
 """
 explorer = Agent(
     role="Senior Researcher",
-    goal="Find and explore the most exciting projects and companies in the ai and machine learning space",
-    backstory="""You are and Expert strategist that knows how to spot emerging trends and companies in AI, tech and machine learning. 
-    You're great at finding interesting, exciting projects on LocalLLama subreddit. You turned scraped data into detailed reports with names
-    of most exciting projects an companies in the ai/ml world. ONLY use scraped data from the internet for the report.
-    """,
+    goal="Find and explore the most exciting events in the ai and machine learning space",
+    backstory="""You are and Expert strategist that knows how to find events in AI, tech and machine learning. 
+       Searching the following sources for AI events for the next 7 to 10 days: Meetup.com, evetnbrite.com, lu.ma (make sure to include https://lu.ma/genai-sf?k=c ) , startupgrind, Y combinator, 500 startups, Andreessen Horowitz (a16z), Stanford Events, Berkeley Events , LinkedIn Events, Silicon Valley Forum,Galvanize, StrictlyVC, Bay Area Tech Events, cerebralvalley.ai,
+       Please make sure to follow the link, and find out the date,  the sign up URL and location    """,
     verbose=True,
     allow_delegation=False,
     tools=[search_tool],
@@ -37,10 +38,9 @@ explorer = Agent(
 
 writer = Agent(
     role="Senior Technical Writer",
-    goal="Write engaging and interesting blog post about latest AI projects using simple, layman vocabulary",
+    goal="Write summary blog post about latest AI events using ordered by date for the next 7 to 10 days",
     backstory="""You are an Expert Writer on technical innovation, especially in the field of AI and machine learning. You know how to write in 
-    engaging, interesting but simple, straightforward and concise. You know how to present complicated technical terms to general audience in a 
-    fun way by using layman words.ONLY use scraped data from the internet for the blog.""",
+    engaging, interesting but simple, straightforward and concise. """,
     verbose=True,
     allow_delegation=False,
 )
@@ -66,19 +66,24 @@ task_report = Task(
 )
 
 task_blog = Task(
-    description="""Write a blog article with text only and with a short but impactful headline and at least 10 paragraphs. Blog should summarize 
-    the report on latest ai tools found on localLLama subreddit. Style and tone should be compelling and concise, fun, technical but also use 
-    layman words for the general public. Name specific new, exciting projects, apps and companies in AI world. Don't 
-    write "**Paragraph [number of the paragraph]:**", instead start the new paragraph in a new line. Write names of projects and tools in BOLD.
-    ALWAYS include links to projects/tools/research papers. ONLY include information from LocalLLAma.
+    description="""Write a short but impactful headline, and list all the events in the order of the date.
+    Here is one example event:
+    
+    Monday, August 25
+        RAG to Riches Workshop
+        Time: 7:00 PM PDT
+        Location: SupportVectors AI Lab 
+        Description: Two-day hands-on workshop diving deep into building smart AI systems using Retrieval-Augmented Generation (RAG)
+        Sign Up: https://www.meetup.com/supportvectors/events/294244000/signup
+    
     For your Outputs use the following markdown format:
     ```
-    ## [Title of post](link to project)
-    - Interesting facts
-    - Own thoughts on how it connects to the overall theme of the newsletter
-    ## [Title of second post](link to project)
-    - Interesting facts
-    - Own thoughts on how it connects to the overall theme of the newsletter
+    ## [Day of the week], Date
+    - Event Title
+    - Time of the event
+    - Location of the event (if available)
+    - Description
+    - Sign Up URL 
     ```
     """,
     agent=writer,
