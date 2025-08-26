@@ -11,6 +11,8 @@ st.set_page_config(
     layout="wide"
 )
 
+today = date.today().strftime("%A, %B %d, %Y")
+
 @tool("OpenAI Search")
 def search_tool(query: str) -> str:
     """AI-powered search using OpenAI chat completion"""
@@ -23,29 +25,55 @@ def search_tool(query: str) -> str:
             return "OpenAI API key not found. Please set OPENAI_API_KEY environment variable."
         
         client = OpenAI(api_key=api_key)
+        today = date.today().strftime("%A, %B %d, %Y")
         
         # Create a focused prompt for AI events
-        system_prompt = """
-        Searching the following sources for AI events for the next 7 to 10 days: Meetup.com, eventbrite.com, lu.ma (make sure to include https://lu.ma/genai-sf?k=c ), startupgrind, Y combinator, 500 startups, Andreessen Horowitz (a16z), Stanford Events, Berkeley Events, LinkedIn Events, Silicon Valley Forum, Galvanize, StrictlyVC, Bay Area Tech Events, cerebralvalley.ai,
-           Please make sure to follow the link, and find out the date, the sign up URL and location
-        You are an AI events researcher. Based on your knowledge, provide information about upcoming AI and machine learning events. 
-        Focus on events that might be found on platforms like Meetup.com, Eventbrite, Lu.ma, and other tech event platforms.
-        Include details like dates, locations, event types, and general information about AI/ML community events."""
+        system_prompt = f"""
+        Today's date is {today}. You are an AI events researcher helping find upcoming AI and machine learning events.
         
-        today = date.today().strftime("%A, %B %d, %Y")
-        user_prompt = f"""Today's date is {today}. Searching the following sources for AI events for the next 7 to 10 days: Meetup.com, eventbrite.com, lu.ma (make sure to include https://lu.ma/genai-sf?k=c ), startupgrind, Y combinator, 500 startups, Andreessen Horowitz (a16z), Stanford Events, Berkeley Events, LinkedIn Events, Silicon Valley Forum, Galvanize, StrictlyVC, Bay Area Tech Events, cerebralvalley.ai,
-           Please make sure to follow the link, and find out the date, the sign up URL and location : {query}
+        IMPORTANT: The current date is {today}. When I ask for events "for the next 7 to 10 days", I mean events happening between {today} and 10 days from now.
+        
+        Based on your knowledge, provide information about upcoming AI and machine learning events that would typically be found on:
+        - Meetup.com
+        - Eventbrite.com 
+        - Lu.ma (especially https://lu.ma/genai-sf?k=c)
+        - Y Combinator events
+        - 500 Startups
+        - Andreessen Horowitz (a16z)
+        - Stanford Events
+        - Berkeley Events
+        - LinkedIn Events
+        - Silicon Valley Forum
+        - Galvanize
+        - StrictlyVC
+        - Bay Area Tech Events
+        - cerebralvalley.ai
+        
+        Include details like dates, locations, event types, and general information about AI/ML community events.
+        Remember: Today is {today}."""
+        
+       
+        user_prompt = f"""CURRENT DATE: {today}
+        
+        Query: {query}
+        
+        Find AI and machine learning events for the next 7-10 days starting from {today}.
+        
+        Search these sources and provide specific events:
 
+        
         Please provide:
-        - Event names and types
-        - Typical dates/timeframes when such events occur
-        - Common locations (especially Bay Area/Silicon Valley)
-        - Types of organizations that host these events
-        - Event platforms where they might be listed
-
-        Format your response as a structured list with bullet points."""
+        - Specific event names and titles
+        - Exact dates (starting from {today})
+        - Event times
+        - Locations (especially Bay Area/Silicon Valley)
+        - Event descriptions
+        - Registration/signup URLs
         
-        st.write(query)
+        Format your response as a structured list with bullet points.
+        REMEMBER: Today is {today}. Only include events happening in the next 7-10 days from this date."""
+        
+        st.write(f"query: {query}")
 
         # Make API call to OpenAI
         response = client.chat.completions.create(
@@ -77,11 +105,12 @@ def load_tool(document_type: str = "any") -> str:
 # Define agents
 @st.cache_resource
 def create_agents():
+    today_str = date.today().strftime("%A, %B %d, %Y")
     explorer = Agent(
         role="Senior Researcher",
-        goal="Find and explore the most exciting events in the ai and machine learning space",
-        backstory="""You are an Expert strategist that knows how to find events in AI, tech and machine learning. 
-           Searching the following sources for AI events for the next 7 to 10 days: Meetup.com, eventbrite.com, lu.ma (make sure to include https://lu.ma/genai-sf?k=c ), startupgrind, Y combinator, 500 startups, Andreessen Horowitz (a16z), Stanford Events, Berkeley Events, LinkedIn Events, Silicon Valley Forum, Galvanize, StrictlyVC, Bay Area Tech Events, cerebralvalley.ai,
+        goal=f"Find and explore the most exciting events in the ai and machine learning space starting from {today_str}",
+        backstory=f"""You are an Expert strategist that knows how to find events in AI, tech and machine learning. Today's date is {today_str}. Make sure to include the current date in every search query.
+           Search the following sources for AI events for the next 7 to 10 days from {today_str}: Meetup.com, eventbrite.com, lu.ma (make sure to include https://lu.ma/genai-sf?k=c ), startupgrind, Y combinator, 500 startups, Andreessen Horowitz (a16z), Stanford Events, Berkeley Events, LinkedIn Events, Silicon Valley Forum, Galvanize, StrictlyVC, Bay Area Tech Events, cerebralvalley.ai,
            Please make sure to follow the link, and find out the date, the sign up URL and location""",
         verbose=True,
         allow_delegation=False,
@@ -99,8 +128,8 @@ def create_agents():
 
     writer = Agent(
         role="Senior Technical Writer",
-        goal="Write summary blog post about latest AI events using ordered by date for the next 7 to 10 days",
-        backstory="""You are an Expert Writer on technical innovation, especially in the field of AI and machine learning. You know how to write in 
+        goal=f"Write summary blog post about latest AI events using ordered by date for the next 7 to 10 days from {today_str}",
+        backstory=f"""You are an Expert Writer on technical innovation, especially in the field of AI and machine learning. Today's date is {today_str}. You know how to write in 
         engaging, interesting but simple, straightforward and concise.""",
         verbose=True,
         allow_delegation=False,
@@ -119,9 +148,10 @@ def create_agents():
     return explorer, loader, writer, critic
 
 def create_tasks(explorer, loader, writer, critic):
+    today_str = date.today().strftime("%A, %B %d, %Y")
     task_report = Task(
-        description="""Use and summarize scraped data from the internet to make a detailed report on the latest AI events in the next 7 to 10 days. 
-        Use ONLY scraped data to generate the report.""",
+        description=f"""Use and summarize scraped data from the internet to make a detailed report on the latest AI events in the next 7 to 10 days from {today_str}. 
+        Use ONLY scraped data to generate the report. Today's date is {today_str}.""",
         agent=explorer,
         expected_output="A detailed analysis report with bullet points listing AI events for the next 7-10 days, including dates, locations, and signup URLs."
     )
@@ -136,14 +166,14 @@ def create_tasks(explorer, loader, writer, critic):
         description="""Write a short but impactful headline, and list all the events in the order of the date.
         Here is one example event:
         
-        Monday, August 25
+        Monday, August 25 2025
             RAG to Riches Workshop
             Time: 7:00 PM PDT
             Location: SupportVectors AI Lab 
             Description: Two-day hands-on workshop diving deep into building smart AI systems using Retrieval-Augmented Generation (RAG)
             Sign Up: https://www.meetup.com/supportvectors/events/294244000/signup
         
-        For your Outputs use the following markdown format:
+        For your Outputs use the following html format:
         ```
         ## [Day of the week], Date
         - Event Title
@@ -154,7 +184,7 @@ def create_tasks(explorer, loader, writer, critic):
         ```
         """,
         agent=writer,
-        expected_output="A blog article in markdown format with compelling headline featuring AI events ordered by date with all required details."
+        expected_output="A blog article in html format with compelling headline featuring AI events ordered by date with all required details."
     )
 
     task_critique = Task(
@@ -242,7 +272,7 @@ def main():
             Task(
                 description="""Write a short but impactful headline, and list all the events in the order of the date.
                 
-                For your Outputs use the following markdown format:
+                For your Outputs use the following html format:
                 ```
                 ## [Day of the week], Date
                 - Event Title
@@ -253,7 +283,7 @@ def main():
                 ```
                 """,
                 agent=writer,
-                expected_output="A blog article in markdown format with compelling headline featuring AI events ordered by date with all required details."
+                expected_output="A blog article in html format with compelling headline featuring AI events ordered by date with all required details."
             ),
             Task(
                 description="""Review the blog post and ensure it follows the correct format and is well-written.
@@ -282,14 +312,14 @@ def main():
                 
                 # Display result
                 st.subheader("📰 Generated Newsletter")
-                st.markdown(str(result))
+                st.text_area("Newsletter", str(result), height=200)
                 
                 # Download button
                 st.download_button(
                     label="📥 Download Newsletter",
                     data=str(result),
-                    file_name="ai_events_newsletter.md",
-                    mime="text/markdown"
+                    file_name="ai_events_newsletter.html",
+                    mime="text/html"
                 )
                 
             except Exception as e:
