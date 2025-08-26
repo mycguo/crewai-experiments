@@ -4,3 +4,7 @@ crewai
 streamlit
 python-docx
 PyPDF2
+anthropic
+requests 
+beautifulsoup4 
+lxml
