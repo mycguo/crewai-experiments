@@ -226,7 +226,9 @@ def perform_deep_research(query: str) -> str:
                 results.append(f"\n--- {source_name} ---")
                 results.append(f"Status: ❌ Error - {str(e)[:50]}...")
         
-        results.insert(0, f"🔍 Deep Research Summary: Scraped {successful_sources}/{max_sources} sources")
+        # Insert summary at the beginning, but put URLs right after if found
+        summary_line = f"🔍 Deep Research Summary: Scraped {successful_sources}/{max_sources} sources"
+        results.insert(0, summary_line)
         
         # Add a clear section with all found signup URLs for easy agent access
         all_signup_urls = []
@@ -238,10 +240,30 @@ def perform_deep_research(query: str) -> str:
                     all_signup_urls.append(url_part)
         
         if all_signup_urls:
-            results.append(f"\n🔗 SUMMARY - ALL FOUND SIGNUP URLs:")
+            # Add URLs both at the end AND at the beginning for visibility
+            url_section = [
+                f"\n" + "="*50,
+                "🔗 IMPORTANT: FOUND SIGNUP URLS - USE THESE EXACT URLS:",
+                "="*50
+            ]
             for i, url in enumerate(all_signup_urls[:10], 1):
-                results.append(f"{i}. SIGNUP_URL: {url}")
-            results.append(f"\nUSE THESE SPECIFIC URLs - DO NOT CREATE GENERIC ONES!")
+                url_section.append(f"URL_{i}: {url}")
+            url_section.extend([
+                "="*50,
+                "INSTRUCTIONS FOR AGENTS:",
+                "- Use the above URLs for Sign Up links",
+                "- DO NOT write 'Sign up URL not available'",
+                "- DO NOT use generic URLs like https://lu.ma/",
+                "- Copy the exact URL from above list",
+                "="*50
+            ])
+            
+            # Add URLs at the beginning (after summary) AND at the end
+            results[1:1] = url_section  # Insert after summary line
+            results.extend(url_section)  # Also add at the end
+        else:
+            results.append(f"\n⚠️ WARNING: No specific signup URLs found in research")
+            results.append("Only then use 'Sign up URL not available'")
         
         return f"Deep research results for '{query}':\n" + "\n".join(results)
         
@@ -412,28 +434,31 @@ def create_tasks(explorer, loader, writer, critic):
 CRITICAL: Use ONLY the specific signup URLs provided in the research data. 
 
 INSTRUCTIONS:
-1. Look for the "SUMMARY - ALL FOUND SIGNUP URLs:" section in the research results
-2. Use the URLs listed as "SIGNUP_URL: https://..." 
-3. If multiple events are found, distribute the signup URLs among them
-4. DO NOT create generic URLs like https://lu.ma/ or https://meetup.com/
+1. Look for the section "FOUND SIGNUP URLS - USE THESE EXACT URLS:" in the research results
+2. Use the URLs listed as "URL_1:", "URL_2:", etc.
+3. If multiple events are found, distribute these URLs among them
+4. DO NOT write "Sign up URL not available" if URLs are provided
+5. DO NOT create generic URLs like https://lu.ma/ or https://meetup.com/
 
-Example of CORRECT format:
-## Monday, August 25, 2025
-- **AI Workshop: Deep Learning Fundamentals**
-- **Time:** 7:00 PM PDT  
-- **Location:** SupportVectors AI Lab
-- **Description:** Two-day hands-on workshop diving deep into building AI systems
-- **Sign Up:** https://lu.ma/event/evt-abc123-ai-workshop-2025
+Example of CORRECT HTML format:
+<h2>Monday, August 25, 2025</h2>
+<ul>
+<li><strong>AI Workshop: Deep Learning Fundamentals</strong></li>
+<li><strong>Time:</strong> 7:00 PM PDT</li>
+<li><strong>Location:</strong> SupportVectors AI Lab</li>
+<li><strong>Description:</strong> Two-day hands-on workshop diving deep into building AI systems</li>
+<li><strong>Sign Up:</strong> https://lu.ma/event/evt-abc123-ai-workshop-2025</li>
+</ul>
 
 WRONG format (DO NOT DO THIS):
 - **Sign Up:** <a href="https://lu.ma/">Workshop</a> ❌
 - **Sign Up:** https://lu.ma/ ❌
 - **Sign Up:** Sign up URL not available ❌ (only use if NO URLs found in research)
 
-Use markdown format with plain text URLs. Look for "SIGNUP_URL:" in the research results summary section.
+Use HTML format with plain text URLs (not HTML links). Look for "SIGNUP_URL:" in the research results summary section.
         """,
         agent=writer,
-        expected_output="A blog article in markdown format with compelling headline featuring AI events ordered by date with specific signup URLs from research data."
+        expected_output="A blog article in HTML format with compelling headline featuring AI events ordered by date with specific signup URLs from research data."
     )
 
     task_critique = Task(
@@ -445,12 +470,12 @@ CRITICAL REVIEW POINTS:
 3. Verify each event has: Title, Date, Time, Location, Description, and specific Sign Up URL
 4. Remove any generic URLs like https://lu.ma/, https://meetup.com/, https://eventbrite.com/
 5. If a specific signup URL is not available, it should say "Sign up URL not available"
-6. Format should be markdown, not HTML
+6. Format should be HTML, not markdown
 7. Ensure the writing is engaging and accessible
 
 REJECT any output that uses generic domain URLs or HTML link formatting.""",
         agent=critic,
-        expected_output="A finalized, well-formatted markdown blog article with specific event signup URLs (no generic domains)."
+        expected_output="A finalized, well-formatted HTML blog article with specific event signup URLs (no generic domains)."
     )
     
     return [task_report, task_loader, task_blog, task_critique]
@@ -571,28 +596,31 @@ def main():
 CRITICAL: Use ONLY the specific signup URLs provided in the research data. 
 
 INSTRUCTIONS:
-1. Look for the "SUMMARY - ALL FOUND SIGNUP URLs:" section in the research results
-2. Use the URLs listed as "SIGNUP_URL: https://..." 
-3. If multiple events are found, distribute the signup URLs among them
-4. DO NOT create generic URLs like https://lu.ma/ or https://meetup.com/
+1. Look for the section "FOUND SIGNUP URLS - USE THESE EXACT URLS:" in the research results
+2. Use the URLs listed as "URL_1:", "URL_2:", etc.
+3. If multiple events are found, distribute these URLs among them
+4. DO NOT write "Sign up URL not available" if URLs are provided
+5. DO NOT create generic URLs like https://lu.ma/ or https://meetup.com/
 
-Example of CORRECT format:
-## Monday, August 25, 2025
-- **AI Workshop: Deep Learning Fundamentals**
-- **Time:** 7:00 PM PDT  
-- **Location:** SupportVectors AI Lab
-- **Description:** Two-day hands-on workshop diving deep into building AI systems
-- **Sign Up:** https://lu.ma/event/evt-abc123-ai-workshop-2025
+Example of CORRECT HTML format:
+<h2>Monday, August 25, 2025</h2>
+<ul>
+<li><strong>AI Workshop: Deep Learning Fundamentals</strong></li>
+<li><strong>Time:</strong> 7:00 PM PDT</li>
+<li><strong>Location:</strong> SupportVectors AI Lab</li>
+<li><strong>Description:</strong> Two-day hands-on workshop diving deep into building AI systems</li>
+<li><strong>Sign Up:</strong> https://lu.ma/event/evt-abc123-ai-workshop-2025</li>
+</ul>
 
 WRONG format (DO NOT DO THIS):
 - **Sign Up:** <a href="https://lu.ma/">Workshop</a> ❌
 - **Sign Up:** https://lu.ma/ ❌
 - **Sign Up:** Sign up URL not available ❌ (only use if NO URLs found in research)
 
-Use markdown format with plain text URLs. Look for "SIGNUP_URL:" in the research results summary section.
+Use HTML format with plain text URLs (not HTML links). Look for "SIGNUP_URL:" in the research results summary section.
                 """,
                 agent=writer,
-                expected_output="A blog article in markdown format with compelling headline featuring AI events ordered by date with specific signup URLs from research data."
+                expected_output="A blog article in HTML format with compelling headline featuring AI events ordered by date with specific signup URLs from research data."
             ),
             Task(
                 description=f"""Review the blog post and ensure it follows the correct format and is well-written. Today is {today_str}.
@@ -603,12 +631,12 @@ CRITICAL REVIEW POINTS:
 3. Verify each event has: Title, Date, Time, Location, Description, and specific Sign Up URL
 4. Remove any generic URLs like https://lu.ma/, https://meetup.com/, https://eventbrite.com/
 5. If a specific signup URL is not available, it should say "Sign up URL not available"
-6. Format should be markdown, not HTML
+6. Format should be HTML, not markdown
 7. Ensure the writing is engaging and accessible
 
 REJECT any output that uses generic domain URLs or HTML link formatting.""",
                 agent=critic,
-                expected_output="A finalized, well-formatted markdown blog article with specific event signup URLs (no generic domains)."
+                expected_output="A finalized, well-formatted HTML blog article with specific event signup URLs (no generic domains)."
             )
         ])
         agents.extend([writer, critic])
@@ -630,7 +658,13 @@ REJECT any output that uses generic domain URLs or HTML link formatting.""",
                 
                 # Display result
                 st.subheader("📰 Generated Newsletter")
-                st.text_area("Newsletter", str(result), height=200)
+                
+                # Display HTML content rendered
+                st.html(str(result))
+                
+                # Also show source code in an expandable section
+                with st.expander("📝 View HTML Source Code"):
+                    st.text_area("HTML Source", str(result), height=200)
                 
                 # Download button
                 st.download_button(
