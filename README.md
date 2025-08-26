@@ -7,6 +7,7 @@ For my experiments with CrewAI, I decided to try 3 different projects, starting 
 2. Build AI newsletter with Google SERP
 3. Build AI newsletter with Reddit Scraper 
 4. Email classifier [WIP]
+5. **AI Events Newsletter Generator** (app.py) - Streamlit app with OpenAI integration
 
 ## For my experiements I've tried following LLMs:
 ---
@@ -62,3 +63,38 @@ For my experiments with CrewAI, I decided to try 3 different projects, starting 
 13. **Phi-2**  
 - The smallest model ran into biggest problems
 - Lost track of what it's suppose to do, no output
+
+## AI Events Newsletter Generator (app.py)
+
+A Streamlit web application that generates AI event newsletters using CrewAI agents and OpenAI integration.
+
+### Features:
+- **Web Interface**: Clean Streamlit UI for generating AI event newsletters
+- **AI-Powered Search**: Uses OpenAI GPT-4 Turbo instead of traditional web scraping
+- **Document Upload**: Optional document processing for event extraction
+- **Multi-Agent System**: 4 specialized CrewAI agents working together:
+  - **Senior Researcher**: Finds AI events using OpenAI chat completion
+  - **Document Loader**: Extracts events from uploaded documents  
+  - **Technical Writer**: Creates formatted newsletter content
+  - **Writing Critic**: Reviews and refines the final output
+
+### Key Improvements:
+- Replaced Google search scraping with OpenAI chat completion API
+- Enhanced date awareness - explicitly passes current date to AI models
+- Searches major AI event platforms: Meetup, Eventbrite, Lu.ma, Y Combinator, etc.
+- Generates HTML-formatted newsletters with event details
+- Focuses on Bay Area/Silicon Valley AI community events
+
+### Usage:
+1. Set `OPENAI_API_KEY` in Streamlit secrets
+2. Run: `streamlit run app.py`
+3. Choose web search and/or document upload options
+4. Generate comprehensive AI events newsletter
+
+### Event Sources Covered:
+- Meetup.com, Eventbrite, Lu.ma (especially GenAI SF)
+- Y Combinator, 500 Startups, A16z events
+- Stanford/Berkeley university events  
+- LinkedIn Events, Silicon Valley Forum
+- Galvanize, StrictlyVC, Bay Area Tech Events
+- cerebralvalley.ai

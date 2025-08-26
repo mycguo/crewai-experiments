@@ -2,3 +2,5 @@ langchain
 langchain-community
 crewai
 streamlit
+python-docx
+PyPDF2

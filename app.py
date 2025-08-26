@@ -217,7 +217,41 @@ def main():
         
         if uploaded_file is not None:
             try:
-                content = uploaded_file.read().decode('utf-8')
+                # Handle different file types
+                file_extension = uploaded_file.name.lower().split('.')[-1]
+                
+                if file_extension in ['docx', 'doc']:
+                    try:
+                        from docx import Document
+                        # Reset file pointer
+                        uploaded_file.seek(0)
+                        doc = Document(uploaded_file)
+                        content = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+                    except ImportError:
+                        st.error("python-docx library not installed. Install with: pip install python-docx")
+                        return
+                    except Exception as e:
+                        st.error(f"Error reading docx file: {str(e)}")
+                        return
+                elif file_extension == 'pdf':
+                    try:
+                        import PyPDF2
+                        # Reset file pointer
+                        uploaded_file.seek(0)
+                        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                        content = ""
+                        for page in pdf_reader.pages:
+                            content += page.extract_text() + "\n"
+                    except ImportError:
+                        st.error("PyPDF2 library not installed. Install with: pip install PyPDF2")
+                        return
+                    except Exception as e:
+                        st.error(f"Error reading PDF file: {str(e)}")
+                        return
+                else:
+                    # Handle text-based files
+                    content = uploaded_file.read().decode('utf-8')
+                
                 st.success(f"Successfully loaded {uploaded_file.name}")
                 uploaded_content = f"File: {uploaded_file.name}\n\nContent:\n{content}"
                 st.session_state.uploaded_content = uploaded_content
@@ -230,6 +264,9 @@ def main():
                     st.success(f"Successfully loaded {uploaded_file.name}")
                     uploaded_content = f"File: {uploaded_file.name}\n\nContent:\n{content}"
                     st.session_state.uploaded_content = uploaded_content
+                    
+                    with st.expander("Preview uploaded content"):
+                        st.text_area("Document content:", content, height=200)
                 except Exception as e:
                     st.error(f"Error reading file: {str(e)}")
     
